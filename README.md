@@ -1,6 +1,6 @@
 ## Install
 
-Install Node.js to run this project.
+Install [Node.js](https://nodejs.org/en/) to run this project.
 
 `cd` into the `tennis_atp` folder and install the dependencies:
 
