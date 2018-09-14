@@ -1,3 +1,28 @@
+## Install
+
+Install Node.js to run this project.
+
+`cd` into the `tennis_atp` folder and install the dependencies:
+
+```
+cd tennis_atp
+npm install
+```
+
+## Run
+
+Run the server by issuing the command.
+
+```
+node server.js
+```
+
+## Open
+
+Open the browser and access the URL [http://localhost:3000/](http://localhost:3000/).
+
+---
+
 ## ATP Tennis Rankings, Results, and Stats
 
 For now, this contains my master ATP player file, plus historical rankings.
