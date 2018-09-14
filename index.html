@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.links line {
+  stroke: rgb(118, 230, 14);
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+svg {
+  border-color: black;
+  border-width: 1px;
+  border-style: solid;
+}
+
+</style>
+<svg width="1200" height="1000" border="1"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height"),
+    transform = d3.zoomIdentity;
+
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+svg.call(d3.zoom()
+    .scaleExtent([1 / 5, 10])
+    .on("zoom", zoomed));
+
+function zoomed() {
+  link.attr("transform", d3.event.transform);
+  node.attr("transform", d3.event.transform);
+}
+
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(function(d) { return d.player_id; }))
+    .force("charge", d3.forceManyBody())
+    .force("r", d3.forceRadial(function(d) { return d.torney_level === "A" ? 800 : 300; }))
+    .force("center", d3.forceCenter(width / 2, height / 2));
+
+
+var link, node;
+
+function ticked() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+  }
+
+var linksData, nodesData;
+
+//d3.json("miserables.json", function(error, graph) {
+d3.csv("atp_matches_2018.csv", function(d1) {
+//d3.csv("links.csv", function(d1) {
+  //if (error) throw error;
+  console.log('loaded atp_matches_2018.csv');
+
+  linksData = d1.filter((value)=>true || value.tourney_level == 'A')
+                .map((value,index,array)=>{
+                  return {source: value.winner_id, target: value.loser_id, value: value.winner_rank_points,
+                    tourney_level: value.tourney_level};
+                  //console.log(value, index);
+                });
+
+    nodesData = [];
+    var nodesIdx = new Map();
+    var maxRanking = -1;
+
+    d1.forEach(element => {
+      var i = nodesIdx.has(element.winner_id) ? nodesIdx.get(element.winner_id) : nodesData.length;
+      nodesIdx.set(element.winner_id, i);
+      var player = 
+        {player_id: element.winner_id, player_name: element.winner_name, ranking: element.winner_rank};
+      nodesData[i] = player;
+      maxRanking = element.winner_rank > maxRanking ? element.winner_rank : maxRanking;
+
+       i = nodesIdx.has(element.loser_id) ? nodesIdx.get(element.loser_id) : nodesData.length;
+       nodesIdx.set(element.loser_id, i);
+      player =
+        {player_id: element.loser_id, player_name: element.loser_name, ranking: element.loser_rank};
+        nodesData[i] = player;
+      maxRanking = element.loser_rank > maxRanking ? element.loser_rank : maxRanking;
+
+    });
+    
+   // console.log(nodesData, nodesIdx);
+
+    link = svg.append("g")
+                  .attr("class", "links")
+                  .selectAll("line")
+                  .data(linksData)
+                  .enter().append("line")
+                          .attr("stroke-width", function(d) { 
+                            var w = Math.log10(d.value);
+                            w = w < 1 ? 1 : w;
+                            return 1; });
+                          //.attr("fill", function(d) { return color(2); });
+
+    node = svg.append("g")
+                  .attr("class", "nodes")
+                  .selectAll("circle")
+                  .data(nodesData)
+                  .enter().append("circle")
+                          .attr("r", 5)
+                          .attr("fill", function(d) { return color(Math.random() * 10); })
+                          .attr("r", function(d) {
+                            var r = Math.log10(10000*(maxRanking - d.ranking + 0.0) / maxRanking + 10) * 2;
+                            r = r > 0 ? r : 1;
+                             return r;})
+                          .call(d3.drag()
+                                  .on("start", dragstarted)
+                                  .on("drag", dragged)
+                                  .on("end", dragended));
+
+    link.append("title")
+        .text((d)=>d.value);
+
+    node.append("title")
+        .text(function(d) { 
+          //console.log(d);
+          return `(${d.ranking}) ${d.player_name}`; });
+
+    simulation
+        .nodes(nodesData)
+        .on("tick", ticked);
+
+    simulation.force("link")
+      .links(linksData);
+
+//  var node = svg.append("g")
+ //     .attr("class", "nodes")
+ //   .selectAll("circle")
+ //   .data(graph.nodes)
+ //   .enter().append("circle")
+ //     .attr("r", 5)
+ //     .attr("fill", function(d) { return color(d.group); })
+ //     .call(d3.drag()
+ //         .on("start", dragstarted)
+ //         .on("drag", dragged)
+ //         .on("end", dragended));
+
+ // node.append("title")
+ //     .text(function(d) { return d.id; });
+
+ // simulation
+ //     .nodes(graph.nodes)
+ //     .on("tick", ticked);
+
+
+ // function ticked() {
+ //   link
+ //       .attr("x1", function(d) { return d.source.x; })
+ //       .attr("y1", function(d) { return d.source.y; })
+ //       .attr("x2", function(d) { return d.target.x; })
+ //       .attr("y2", function(d) { return d.target.y; });
+//
+  //  node
+  //      .attr("cx", function(d) { return d.x; })
+  //      .attr("cy", function(d) { return d.y; });
+  //}
+});
+//d3.csv("atp_players.csv", function(d2) {
+//d3.csv("nodes.csv", function(d2) {
+//    console.log('loaded atp_players.csv');
+//
+//    nodesData = d2.map((value,index,array)=>{
+//      var ret = {player_id:value.player_id,
+//        first_name: value.first_name, last_name: value.last_name,
+//
+//      }
+//    });
+//    // player_id, first_name, last_name, hand, birth_date, country_code
+//    node = svg.append("g")
+//                  .attr("class", "nodes")
+//                  .selectAll("circle")
+//                  .data(nodesData)
+//                  .enter().append("circle")
+//                          .attr("r", 5)
+//                          .attr("fill", function(d) { return '#777'; })
+//                          .call(d3.drag()
+//                                  .on("start", dragstarted)
+//                                  .on("drag", dragged)
+//                                  .on("end", dragended));
+//
+//    node.append("title")
+//        .text(function(d) { 
+//          //console.log(d);
+//          return `${d.first_name} ${d.last_name}`; });
+//
+//    simulation
+//        .nodes(nodesData)
+//        .on("tick", ticked);
+//
+//    simulation.force("link")
+//      .links(linksData);
+//});
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+</script>

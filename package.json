@@ -1,0 +1,26 @@
+{
+  "name": "tennis_atp",
+  "version": "1.0.0",
+  "description": "For now, this contains my master ATP player file, plus historical rankings.",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeffSackmann/tennis_atp.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JeffSackmann/tennis_atp/issues"
+  },
+  "homepage": "https://github.com/JeffSackmann/tennis_atp#readme",
+  "dependencies": {
+    "hapi": "^17.5.4",
+    "inert": "^5.1.0"
+  }
+}
