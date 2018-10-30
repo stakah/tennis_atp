@@ -111,7 +111,10 @@ def get_historico(matches):
         h[p_id].name = p_name
         h[p_id].age = p_age
         h[p_id].height = p_ht
-        h[p_id].rank = p_rank
+        if h[p_id].rank == 0 or np.isnan(h[p_id].rank):
+            h[p_id].rank = p_rank
+        if h[p_id].rank > p_rank:
+            h[p_id].rank = p_rank
     
     def set_play_count(hh, inc_n, inc_w, inc_l):
         hh.n += inc_n
@@ -183,7 +186,7 @@ def to_array_dict(H):
         ret.append(d)
     return ret
 
-#X_list = to_array_dict(H)
+X_list = to_array_dict(H)
 
 def apply_hist(matches, h):
     def calc_winner_hist(row):
@@ -242,18 +245,19 @@ apply_hist(matches_ds, H)
 import random
 def get_X(matches):
     X = []
-    for [w_rank, w_hist, w_sur, w_rou, \
-         l_rank, l_hist, l_sur, l_rou] \
-         in matches.loc[:, ['winner_rank', 'winner_hist', 'winner_surface', 'winner_round', \
-                            'loser_rank', 'loser_hist', 'loser_surface', 'loser_round']].values:
+    for [w_id, w_name, w_rank, w_hist, w_sur, w_rou, \
+         l_id, l_name, l_rank, l_hist, l_sur, l_rou, tourney_date] \
+         in matches.loc[:, ['winner_id','winner_name','winner_rank', 'winner_hist', 'winner_surface', 'winner_round', \
+                            'loser_id','loser_name','loser_rank', 'loser_hist', 'loser_surface', 'loser_round',\
+                            'tourney_date']].values:
         if (random.randint(1,2) == 1):
-            X.append({'rank1':w_rank, 'his1':w_hist, 'sur1':w_sur, 'rou1':w_rou, \
-                      'rank2':l_rank, 'his2':l_hist, 'sur2':l_sur, 'rou2':l_rou, \
-                      'p1':1, 'p2':0})
+            X.append({'id1':w_id, 'name1':w_name, 'rank1':w_rank, 'his1':w_hist, 'sur1':w_sur, 'rou1':w_rou, \
+                      'id2':l_id, 'name2':l_name, 'rank2':l_rank, 'his2':l_hist, 'sur2':l_sur, 'rou2':l_rou, \
+                      'p1':1, 'p2':0, 'tourney_date':tourney_date})
         else:
-            X.append({'rank1':l_rank, 'his1':l_hist, 'sur1':l_sur, 'rou1':l_rou, \
-                      'rank2':w_rank, 'his2':w_hist, 'sur2':w_sur, 'rou2':w_rou, \
-                      'p1':0, 'p2':1})
+            X.append({'id1':l_id, 'name1': l_name, 'rank1':l_rank, 'his1':l_hist, 'sur1':l_sur, 'rou1':l_rou, \
+                      'id2':w_id, 'name2': w_name, 'rank2':w_rank, 'his2':w_hist, 'sur2':w_sur, 'rou2':w_rou, \
+                      'p1':0, 'p2':1, 'tourney_date':tourney_date})
     return X
 
 #X = matches_ds.loc[:, ['winner_rank','winner_hist','winner_surface','winner_round', \
@@ -373,6 +377,9 @@ print('Test accuracy:', test_acc)
 # Make predictions
 predictions = model.predict(X_test)
 
+# Predictions size
+len(predictions)
+
 # First prediction
 predictions[0]
 
@@ -382,7 +389,68 @@ np.argmax(predictions[0])
 # Compare with the actual player from the test set
 y_test[0]
 
+# The training data
+X_test.iloc[0]
+
+# The players and data for that prediction
+Xh[132707]
+
 #sess = tf.InteractiveSession()
 #confusion = tf.confusion_matrix(pd.DataFrame(y_test).iloc[:,0].values, pd.DataFrame(predictions).iloc[:,0].values)
 #confusion.eval()
 
+
+
+def find_id_by_name(X, name):
+    """
+    retorna um dictionary com id e name do jogador a partir do nome do jogador.
+    """
+    for r in H.keys():
+        h = H[r]
+        if h.name.lower() == name.lower():
+            return {'id': h.player_id, 'name': h.name}
+       
+# List dos 21 jogadores com maior quantidades de vitorias em torneios 
+players = ['Jimmy Connors', 'Roger Federer', 'Ivan Lendl', 'John McEnroe', 'Rafael Nadal', 'Novak Djokovic',\
+           'Pete Sampras', 'Bjorn Borg', 'Guillermo Vilas', 'Andre Agassi', 'Ilie Nastase', 'Boris Becker',\
+           'Rod Laver', 'Andy Murray', 'Thomas Muster', 'Stefan Edberg', 'Stan Smith', 'Michael Chang', \
+           'Arthur Ashe', 'Ken Rosewall', 'Mats Wilander']
+
+# Popula lista auxiliar com os jogadores com maior quantidade de vitorias
+top_players = []
+for p in players:
+    h1 = find_id_by_name(X, p)
+    top_players.append(h1)
+
+# Gera um dataframe e salva em arquivo CSV
+df = pd.DataFrame(top_players)
+df.to_csv("top_players.csv")
+
+# Matriz de entrada para fazer os matches hipoteticos com os top 21
+X_top = []
+for i in range(0, len(top_players)-1):
+    for j in range (i+1, len(top_players)):
+        id1 = top_players[i]['id']
+        id2 = top_players[j]['id']
+        p1 = H[id1]
+        p2 = H[id2]
+        X_top.append({'id1':id1, 'name1':p1.name, 'rank1':p1.rank, 'his1':p1.w/p1.n, 'sur1':0.5, 'rou1':0.5, \
+                      'id2':id2, 'name2':p2.name, 'rank2':p2.rank, 'his2':p2.w/p2.n, 'sur2':0.5, 'rou2':0.5, })
+
+top_ds = pd.DataFrame(X_top)
+
+imputer = imputer.fit(top_ds.loc[:, ['rank1','rank2']])
+top_ds.loc[:, ['rank1','rank2']] = imputer.transform(top_ds.loc[:, ['rank1','rank2']])
+
+X_top = top_ds.loc[:, ['rank1','his1','sur1','rou1','rank2','his2','sur2','rou2']]
+
+top_predictions = model.predict(X_top)
+
+top_result = pd.DataFrame(top_ds.loc[:,['id1','name1','id2','name2']])
+
+top_result['p1'] = 0
+top_result['p2'] = 0
+
+top_result.loc[:,['p1','p2']] = top_predictions
+
+top_result.to_csv('top_result.csv')
