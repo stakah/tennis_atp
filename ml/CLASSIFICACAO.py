@@ -85,6 +85,7 @@ class Hist:
         self.age = 0.0
         self.height = 0.0
         self.rank = 0
+        self.tourney_date = 0
         self.n = 0
         self.w = 0
         self.l = 0
@@ -104,16 +105,18 @@ def get_surfaces(matches):
 surfaces_list = get_surfaces(matches_ds)
 
 def get_historico(matches):
-    def set_player(h, p_id, p_name, p_age, p_ht, p_rank):
+    def set_player(h, p_id, p_name, p_age, p_ht, p_rank, p_tourney_date):
         if not p_id in h.keys():
             h[p_id] = Hist()
         h[p_id].player_id = p_id
         h[p_id].name = p_name
         h[p_id].age = p_age
         h[p_id].height = p_ht
-        if h[p_id].rank == 0 or np.isnan(h[p_id].rank):
+        if h[p_id].tourney_date == 0:
+            h[p_id].tourney_date = p_tourney_date
             h[p_id].rank = p_rank
-        if h[p_id].rank > p_rank:
+        if h[p_id].tourney_date < p_tourney_date:
+            h[p_id].tourney_date = p_tourney_date
             h[p_id].rank = p_rank
     
     def set_play_count(hh, inc_n, inc_w, inc_l):
@@ -141,11 +144,11 @@ def get_historico(matches):
 
     for [loser_id, loser_name, loser_age, loser_ht, loser_rank, \
          winner_id, winner_name, winner_age, winner_ht, winner_rank, \
-         match_round, match_surface] \
+         match_round, match_surface, tourney_date] \
     in matches.loc[:, ['loser_id','loser_name','loser_age','loser_ht','loser_rank',\
                        'winner_id','winner_name','winner_age','winner_ht','winner_rank', \
-                       'round','surface']].values:
-        set_player(h, loser_id, loser_name, loser_age, loser_ht, loser_rank)
+                       'round','surface', 'tourney_date']].values:
+        set_player(h, loser_id, loser_name, loser_age, loser_ht, loser_rank, tourney_date)
         set_play_count(h[loser_id], 1, 0, 1)
         
         if not match_round in h[loser_id].r.keys():
@@ -156,7 +159,7 @@ def get_historico(matches):
             h[loser_id].s[match_surface] = Surface()
         set_surface_count(h[loser_id].s[match_surface], 1, 0, 1)
         
-        set_player(h, winner_id, winner_name, winner_age, winner_ht, winner_rank)
+        set_player(h, winner_id, winner_name, winner_age, winner_ht, winner_rank, tourney_date)
         set_play_count(h[winner_id], 1, 1, 0)
         
         if not match_round in h[winner_id].r.keys():
